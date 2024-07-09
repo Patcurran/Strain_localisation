@@ -10,44 +10,71 @@ import pickle
 
 ##################################################################################################################
 #SAMPLE PARAMETERS
-region='B2_zone1' #change file path
+region='A3_zone2' #change file path
 DIC_data = {}
 resolution = 40/2048
 DIC_mean_shear_strain = []
 DIC_std_shear_strain  = []
 output ="../results/{}/".format(region)
-plot_maps = False
-dic_homog = {'A3_zone1':[(335, 10), (348, 180), (253, 307), (331, 329), (99, 208), (66, 116), (83, 13)],
-           'A3_zone2':[(412, 39), (775, 254), (219, 262), (126, 631), (347, 535), (59, 119)],
-           'A3_zone3':[(775, 73), (180, 69), (752, 783), (88, 684), (273, 175), (248, 360)],
-           'B2_zone1':[(201, 335), (123, 243), (470, 64), (706, 427), (75, 547), (744, 153)]}
+plot_maps = True
+#slip activaiton
+#A3_zone1 = 8
+crop_area = {'A3_zone1':[30, 30, 20, 20],
+            'A3_zone2':[30,40,10,10],
+            'A3_zone3':[30,35,10,10]
+            }
 
-ebsd_homog = {'A3_zone1':[(408, 337), (412, 398), (377, 445), (405, 453), (323, 409), (314, 374), (319, 337)],
-           'A3_zone2':[(280, 101), (342, 140), (245, 141), (227, 209), (266, 193), (216, 115)],
-           'A3_zone3':[(334, 176), (229, 177), (328, 312), (213, 294), (237, 199), (240, 230)],
-           'B2_zone1':[(217, 198), (198, 178), (275, 136), (331, 217), (193, 244), (330, 157)]}
+dic_homog = {'A3_zone1':[(1765, 335), (738, 215), (1373, 1167), (1550, 1579), (1816, 1790), (1055, 664), (309, 1141), (263, 681)],
+           'A3_zone2':[(1120, 115), (2089, 703), (583, 1117), (944, 1458), (150, 869), (1508, 871)],
+           'A3_zone3':[(610, 529), (2083, 216), (1571, 2080), (224, 1958), (243, 986), (850,1394), (1204, 1599)],
+           'B2_zone1':[(1867, 112), (688, 1112), (1378, 293), (391, 796), (2755, 1534), (2730, 1035), (1933, 1727)]}
+
+ebsd_homog = {'A3_zone1':[(402, 352), (335, 343), (376, 410), (388, 439), (405, 452), (356, 373), (307, 407), (303, 376)],
+           'A3_zone2':[(280, 100), (342, 141), (244, 169), (266, 192), (215, 151), (305, 153)],
+           'A3_zone3': [(236, 200), (334, 177), (299, 310), (211, 304), (213, 232), (245, 253), (274, 276)],
+           'B2_zone1':[(292, 131), (218, 198), (261, 143), (198,177), (356, 225), (354, 191), (303, 242)]}
+
+dicFilePath ={'A3_zone1':"../DIC_data/A3/zone_1/take 3/",
+             'A3_zone2':"../DIC_data/A3/zone_2/take3/",
+             'A3_zone3':"../DIC_data/A3/zone_3/take 3/",
+             'B2_zone1':"../DIC_data/B2/take 2/"}
+
+EbsdFilePath={'A3_zone1':'../EBSD_data/CP large area/A3_zone1',
+              'A3_zone2':'../EBSD_data/CP large area/A3_zone2',
+              'A3_zone3':'../EBSD_data/CP large area/A3_zone3',
+              'B2_zone1':'../EBSD_data/CP large area/B2_zone1'}
+
+EbsdFlip = {'A3_zone1':False,
+              'A3_zone2':False,
+              'A3_zone3':False,
+              'B2_zone1':True}
+
+min_grain ={'A3_zone1':50,
+           'A3_zone2':50,
+           'A3_zone3':50,
+           'B2_zone1':150}
 ##################################################################################################################
 #IMPORT DIC DATA
-for step in np.arange(1,12): #index from 1
-    dicFilePath = "../DIC_data/B2/"
+for step in np.arange(1,15): #index from 1
     if step <10:
-        DicMap = hrdic.Map(dicFilePath, "B0000{}.txt".format(step))
+        DicMap = hrdic.Map(dicFilePath[region], "B0000{}.txt".format(step))
     else:
-        DicMap = hrdic.Map(dicFilePath, "B000{}.txt".format(step))
+        DicMap = hrdic.Map(dicFilePath[region], "B000{}.txt".format(step))
     
 ###################################################################################################################
 #LINK DIC AND EBSD 
     DicMap.setPatternPath('01-1.BMP',1) 
-    DicMap.setCrop(xMin=10, xMax=10, yMin=10, yMax=10)
+    DicMap.setCrop(xMin=crop_area[region][0], xMax=crop_area[region][1], yMin=crop_area[region][2], yMax=crop_area[region][3])
     DicMap.setScale(micrometrePerPixel=resolution)
 
-    EbsdFilePath = "../EBSD_data/CP large area/{}".format(region)
-    EbsdMap = ebsd.Map(EbsdFilePath) #delete 'cubic'
-    #EbsdMap.rotateData()
+    EbsdMap = ebsd.Map(EbsdFilePath[region]) #delete 'cubic'
+    
+    if EbsdFlip[region]:
+        EbsdMap.rotateData()
 
     EbsdMap.buildQuatArray()
     EbsdMap.findBoundaries(boundDef = 2) #degrees
-    EbsdMap.findGrains(minGrainSize = 5) #pixels
+    EbsdMap.findGrains(minGrainSize = min_grain[region]) #pixels
     EbsdMap.calcGrainMisOri(calcAxis = False)
     EbsdMap.calcAverageGrainSchmidFactors(loadVector=[1,0,0])
     
@@ -59,13 +86,14 @@ for step in np.arange(1,12): #index from 1
 
     DicMap.findGrains(algorithm='warp')
     EbsdMap.calcAverageGrainSchmidFactors(loadVector=np.array([1,0,0]))
-    
+#########################################################################################################################
+#PLOT MAPS
     if plot_maps: 
-        DicMap.plotGrainAvMaxShear(vmin=0,vmax=0.01,plotColourBar=True,plotScaleBar=True,plotGBs= True ,dilateBoundaries=True)
+        DicMap.plotGrainAvMaxShear(vmin=0,vmax=0.015,plotColourBar=True,plotScaleBar=True,plotGBs= True ,dilateBoundaries=True)
         plt.tight_layout()
         plt.savefig(output + 'Grain_avg_ESS_DIC_{}'.format(step),dpi=1600)
         plt.close()
-        DicMap.plotMaxShear(plotGBs=True, dilateBoundaries=True, plotColourBar=True, plotScaleBar=True, vmin=0, vmax=0.01)
+        DicMap.plotMaxShear(plotGBs=True, dilateBoundaries=True, plotColourBar=True, plotScaleBar=True, vmin=0, vmax=0.015)
         plt.tight_layout()
         plt.savefig(output + 'ESS_DIC_{}'.format(step),dpi=1600)
         plt.close()
@@ -92,8 +120,8 @@ for step in np.arange(1,12): #index from 1
 #####################################################################################################################
 #EXPORT DATA
     
-    DIC_data['step_{}'.format(str(step))]=np.column_stack((grain_ID, grain_size, DIC_e11,shear_strain))
-
+    #DIC_data['step_{}'.format(str(step))]=np.column_stack((grain_ID, grain_size, DIC_e11,shear_strain))
+    DIC_data['step_{}'.format(str(step))] = {'grain_ID':grain_ID,'grain_size ($\mu m^2$)':grain_size,'DIC_e11':DIC_e11,'DIC_shear_strain':shear_strain}
 file_name = "{}_strain_DIC.pickle".format(region)
 with open(file_name, "wb") as pickle_file:
     pickle.dump(DIC_data, pickle_file)
